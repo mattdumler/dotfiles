@@ -1,0 +1,4 @@
+# Command aliases.
+
+# Always use neovim.
+alias vim="nvim"

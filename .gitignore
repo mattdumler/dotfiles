@@ -1,0 +1,6 @@
+# Secrets
+.zsh_tokens
+
+# macOS AppleDouble metadata
+._*
+.DS_Store

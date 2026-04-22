@@ -1,0 +1,8 @@
+[user]
+	name = Matt Dumler
+[core]
+	editor = nvim
+[pull]
+	rebase = false
+[include]
+	path = config.local
