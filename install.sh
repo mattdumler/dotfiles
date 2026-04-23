@@ -6,7 +6,9 @@
 set -eu
 
 # Packages available by the same name on both apt and brew.
-packages=(stow neovim fzf tmux ripgrep pre-commit)
+# clang-format: installed here (not via Mason) because Mason's pypi provider
+# rejects the clang-format package — its PyPI metadata lacks requires_python.
+packages=(stow neovim fzf tmux ripgrep pre-commit clang-format)
 
 # Neovim plugins (lazy.nvim, blink.cmp, native inlay hints) require 0.10+.
 require_nvim_010() {

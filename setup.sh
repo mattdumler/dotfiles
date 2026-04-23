@@ -62,7 +62,7 @@ fi
 echo "Syncing Neovim plugins..."
 nvim --headless "+Lazy! sync" +qa
 
-# Install Mason-managed tools (clangd, codelldb, clang-format). Blocks until done.
+# Install Mason-managed tools (clangd, codelldb). Blocks until done.
 # mason-tool-installer is lazy-loaded by nvim-lspconfig's BufReadPre trigger,
 # which never fires in headless mode with no buffer — so force-load it first.
 # MasonToolsInstallSync installs missing tools; MasonToolsUpdateSync only updates

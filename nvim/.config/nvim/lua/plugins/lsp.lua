@@ -7,7 +7,7 @@ return {
       {
         "WhoIsSethDaniel/mason-tool-installer.nvim",
         opts = {
-          ensure_installed = { "clangd", "clang-format", "codelldb" },
+          ensure_installed = { "clangd", "codelldb" },
           run_on_start = true,
           auto_update = false,
         },
