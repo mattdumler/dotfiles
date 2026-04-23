@@ -57,6 +57,10 @@ install_node() {
     # shellcheck source=/dev/null
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
     nvm install --lts
+
+    # Expose node on PATH without sourcing nvm in every shell (needed by nvim/coc).
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(nvm which current)" "$HOME/.local/bin/node"
 }
 
 # Install Claude Code via native installer.
