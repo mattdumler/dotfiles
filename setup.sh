@@ -49,16 +49,6 @@ else
     echo "catppuccin-zsh already installed"
 fi
 
-# Install vim-plug if not present.
-PLUG_VIM="$XDG_DATA_HOME/nvim/site/autoload/plug.vim"
-if [ ! -f "$PLUG_VIM" ]; then
-    echo "Installing vim-plug..."
-    curl -fLo "$PLUG_VIM" --create-dirs \
-        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-else
-    echo "vim-plug already installed"
-fi
-
 # Install tpm if not present.
 TPM_DIR="$XDG_DATA_HOME/tmux/plugins/tpm"
 if [ ! -d "$TPM_DIR" ]; then
@@ -68,9 +58,27 @@ else
     echo "tpm already installed"
 fi
 
-# Install vim plugins headlessly.
-echo "Installing vim plugins..."
-nvim --headless +PlugInstall +qall 2>/dev/null || true
+# Sync Neovim plugins. lazy.nvim self-bootstraps from init.lua.
+echo "Syncing Neovim plugins..."
+nvim --headless "+Lazy! sync" +qa
+
+# Install Mason-managed tools (clangd, codelldb). Blocks until done.
+# mason-tool-installer is lazy-loaded by nvim-lspconfig's BufReadPre trigger,
+# which never fires in headless mode with no buffer — so force-load it first.
+# MasonToolsInstallSync installs missing tools; MasonToolsUpdateSync only updates
+# already-installed ones, so it silently no-ops on a fresh machine.
+echo "Installing Mason tools..."
+nvim --headless \
+    "+lua require('lazy').load({ plugins = { 'mason.nvim', 'mason-tool-installer.nvim' } })" \
+    "+MasonToolsInstallSync" \
+    +qa
+
+# Compile custom spellfile so :set spell picks it up.
+SPELLFILE="$HOME/.config/nvim/spell/en.utf-8.add"
+if [ -f "$SPELLFILE" ]; then
+    echo "Compiling spellfile..."
+    nvim --headless "+silent! mkspell! $SPELLFILE" +qa
+fi
 
 # Install tmux plugins headlessly.
 if [ -x "$TPM_DIR/bin/install_plugins" ]; then
