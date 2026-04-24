@@ -9,6 +9,11 @@
 # Mason). A single entry point beats remembering which tool came from where.
 set -eu
 
+# Tarball-installed nvim and nvm-symlinked node both land in ~/.local/bin.
+# A fresh shell won't have this on PATH yet, so the script's own version
+# checks (e.g. require_nvim_010) wouldn't find them.
+export PATH="$HOME/.local/bin:$PATH"
+
 # Packages available by the same name on both apt and brew.
 # clang-format: installed here (not via Mason) because Mason's pypi provider
 # rejects the clang-format package — its PyPI metadata lacks requires_python.
@@ -16,6 +21,10 @@ packages=(stow fzf tmux ripgrep pre-commit clang-format)
 
 # Neovim plugins (lazy.nvim, blink.cmp, native inlay hints) require 0.10+.
 require_nvim_010() {
+    if ! command -v nvim >/dev/null; then
+        echo "Error: nvim not found on PATH." >&2
+        exit 1
+    fi
     local version
     version=$(nvim --version | head -1 | awk '{print $2}' | tr -d 'v')
     local major minor
@@ -100,9 +109,11 @@ install_nvim_linux() {
 install_node() {
     export NVM_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nvm"
 
-    if [ -d "$NVM_DIR" ]; then
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
         echo "nvm already installed"
     else
+        # nvm's installer refuses to create a non-default NVM_DIR, so pre-create it.
+        mkdir -p "$NVM_DIR"
         # NVM install script honors $NVM_DIR; PROFILE=/dev/null skips shell profile edits.
         PROFILE=/dev/null curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh" | bash
     fi
