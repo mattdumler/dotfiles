@@ -133,7 +133,9 @@ install_claude_code() {
         echo "Claude Code already installed"
     else
         echo "Installing Claude Code..."
-        curl -fsSL https://claude.ai/install.sh | sh
+        # Pipe to bash, not sh — on Debian/Ubuntu /bin/sh is dash and the
+        # installer uses bash-only syntax.
+        curl -fsSL https://claude.ai/install.sh | bash
     fi
 }
 
