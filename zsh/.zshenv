@@ -11,8 +11,12 @@ export LESSHISTFILE="$XDG_STATE_HOME/less/history"
 export PYTHON_HISTORY="$XDG_STATE_HOME/python/history"
 export NODE_REPL_HISTORY="$XDG_STATE_HOME/node/repl_history"
 export npm_config_cache="$XDG_CACHE_HOME/npm"
+export NVM_DIR="$XDG_DATA_HOME/nvm"
+export KUBECONFIG="$XDG_CONFIG_HOME/kube/config"
+
+# Disable macOS Terminal per-tab session history (SHARE_HISTORY handles cross-shell).
+export SHELL_SESSIONS_DISABLE=1
 
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 
-export GOPATH="$HOME/go"
-export PATH="$HOME/.local/bin:$HOME/bin:$GOPATH/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"

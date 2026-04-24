@@ -3,12 +3,16 @@
 # Installs core packages via apt (Linux) or brew (macOS),
 # sets zsh as default shell, and installs Node.js via nvm
 # (used by Mason-managed Node-based LSP servers).
+#
+# TODO: add a companion update.sh to refresh tools across all install methods
+# in use here (apt, brew, GitHub release tarball, nvm, Claude installer,
+# Mason). A single entry point beats remembering which tool came from where.
 set -eu
 
 # Packages available by the same name on both apt and brew.
 # clang-format: installed here (not via Mason) because Mason's pypi provider
 # rejects the clang-format package — its PyPI metadata lacks requires_python.
-packages=(stow neovim fzf tmux ripgrep pre-commit clang-format)
+packages=(stow fzf tmux ripgrep pre-commit clang-format)
 
 # Neovim plugins (lazy.nvim, blink.cmp, native inlay hints) require 0.10+.
 require_nvim_010() {
@@ -19,16 +23,12 @@ require_nvim_010() {
     minor=$(echo "$version" | cut -d. -f2)
     if [ "$major" -eq 0 ] && [ "$minor" -lt 10 ]; then
         echo "Error: Neovim >= 0.10 required, found $version." >&2
-        echo "On apt: ensure ppa:neovim-ppa/stable or use the AppImage." >&2
+        echo "On Linux: reinstall via install_nvim_linux (upstream tarball)." >&2
         exit 1
     fi
 }
 
 install_linux() {
-    if grep -q "Ubuntu" /etc/os-release; then
-        sudo add-apt-repository -y ppa:neovim-ppa/stable
-    fi
-
     sudo apt update
     sudo apt install -y curl git zsh "${packages[@]}"
 
@@ -36,6 +36,8 @@ install_linux() {
     # unzip: Mason uses it to extract downloaded tool archives.
     # fd-find: Telescope uses fd for fast file listing; binary is `fdfind` on apt.
     sudo apt install -y build-essential cmake unzip fd-find
+
+    install_nvim_linux
 
     # Symlink fdfind -> fd on PATH so Telescope picks it up.
     mkdir -p "$HOME/.local/bin"
@@ -67,18 +69,44 @@ install_macos() {
         fi
     fi
 
-    brew install "${packages[@]}" cmake fd
+    brew install "${packages[@]}" neovim cmake fd
+}
+
+# Install latest stable Neovim from upstream tarball.
+# Apt (Ubuntu 22.04) ships 0.7.2 and the neovim-ppa is unreliable on Jammy.
+install_nvim_linux() {
+    # Remove any apt-installed neovim so it can't shadow the tarball binary on PATH.
+    if dpkg -s neovim >/dev/null 2>&1; then
+        sudo apt remove -y neovim
+    fi
+
+    if [ -x "$HOME/.local/bin/nvim" ] \
+        && dpkg --compare-versions "$("$HOME/.local/bin/nvim" --version | head -1 | awk '{print $2}' | tr -d 'v')" ge 0.10.0; then
+        echo "Neovim $("$HOME/.local/bin/nvim" --version | head -1) already installed"
+        return
+    fi
+    local tmp
+    tmp=$(mktemp -d)
+    curl -fsSL -o "$tmp/nvim.tar.gz" \
+        https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+    mkdir -p "$HOME/.local"
+    tar -C "$HOME/.local" -xzf "$tmp/nvim.tar.gz"
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$HOME/.local/nvim-linux-x86_64/bin/nvim" "$HOME/.local/bin/nvim"
+    rm -rf "$tmp"
 }
 
 # Install Node.js via nvm (used by Mason-managed Node-based LSP servers).
 install_node() {
-    if [ -d "$HOME/.nvm" ]; then
+    export NVM_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/nvm"
+
+    if [ -d "$NVM_DIR" ]; then
         echo "nvm already installed"
     else
-        curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh" | bash
+        # NVM install script honors $NVM_DIR; PROFILE=/dev/null skips shell profile edits.
+        PROFILE=/dev/null curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh" | bash
     fi
 
-    export NVM_DIR="$HOME/.nvm"
     # shellcheck source=/dev/null
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
     nvm install --lts
