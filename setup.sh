@@ -5,6 +5,9 @@ set -eu
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DOTFILES_DIR"
 
+# Tarball-installed nvim lives here on Linux; not on a fresh shell's PATH.
+export PATH="$HOME/.local/bin:$PATH"
+
 # Ensure Homebrew is on PATH (not yet in PATH on a fresh machine).
 if [ "$(uname -s)" = "Darwin" ] && ! command -v brew &>/dev/null; then
     if [ -x /opt/homebrew/bin/brew ]; then
