@@ -43,6 +43,32 @@ is_selected() {
     return 1
 }
 
+# --- Stow helper -------------------------------------------------------
+
+# Move any pre-existing non-symlink target out of the way before stowing.
+# Conflicts can arise from interrupted prior runs or hand-copied files;
+# --restow refuses to replace regular files even if their content matches.
+backup_stow_conflicts() {
+    local pkg="$1"
+    local pkg_dir="$DOTFILES_DIR/$pkg"
+    [ -d "$pkg_dir" ] || return 0
+    local ts
+    ts=$(date +%Y%m%d-%H%M%S)
+    while IFS= read -r -d '' src; do
+        local rel="${src#"$pkg_dir/"}"
+        local target="$HOME/$rel"
+        if [ -e "$target" ] && [ ! -L "$target" ] && [ ! -d "$target" ]; then
+            echo "  backing up $target -> $target.bak.$ts"
+            mv "$target" "$target.bak.$ts"
+        fi
+    done < <(find "$pkg_dir" -type f -print0)
+}
+
+stow_pkg() {
+    backup_stow_conflicts "$1"
+    stow --restow --no-folding --target="$HOME" "$1"
+}
+
 # --- Core prelude (always runs) ----------------------------------------
 
 ensure_brew_on_path() {
@@ -98,7 +124,7 @@ install_zsh() {
 
 setup_zsh() {
     mkdir -p "$XDG_STATE_HOME/zsh" "$XDG_CACHE_HOME/zsh"
-    stow --restow --no-folding --target="$HOME" zsh
+    stow_pkg zsh
 
     local plugin_dir="$XDG_DATA_HOME/zsh/plugins"
     mkdir -p "$plugin_dir"
@@ -185,7 +211,7 @@ install_nvim() {
 }
 
 setup_nvim() {
-    stow --restow --no-folding --target="$HOME" nvim
+    stow_pkg nvim
 
     echo "Syncing Neovim plugins..."
     nvim --headless "+Lazy! sync" +qa
@@ -219,7 +245,7 @@ install_tmux() {
 }
 
 setup_tmux() {
-    stow --restow --no-folding --target="$HOME" tmux
+    stow_pkg tmux
 
     local tpm_dir="$XDG_DATA_HOME/tmux/plugins/tpm"
     if [ ! -d "$tpm_dir" ]; then
@@ -243,7 +269,7 @@ install_git() {
 }
 
 setup_git() {
-    stow --restow --no-folding --target="$HOME" git
+    stow_pkg git
 }
 
 # --- node (nvm + LTS) --------------------------------------------------
